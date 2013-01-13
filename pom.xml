@@ -187,7 +187,7 @@
 		<repository>
 			<id>intelligents-ia</id>
 			<name>Intelligents-ia Repository On Intelligents-ia Web Site</name>
-			<url>http://intelligents-ia.com/maven2</url>
+			<url>http://mvn.intelligents-ia.com/releases</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
@@ -200,7 +200,7 @@
 		<pluginRepository>
 			<id>intelligents-ia.plugin</id>
 			<name>Intelligents-ia Repository</name>
-			<url>http://intelligents-ia.com/maven2</url>
+			<url>http://mvn.intelligents-ia.com/releases</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
