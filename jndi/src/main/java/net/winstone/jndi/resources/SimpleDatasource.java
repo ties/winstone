@@ -5,13 +5,17 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -158,16 +162,6 @@ public class SimpleDatasource implements DataSource, ResourceFactory<Connection>
 	public PrintWriter getLogWriter() throws SQLException {
 		return logWriter;
 	}
-
-    /**
-     * getParentLogger() was added to JDBC in Java 1.7. Always throws  SQLFeatureNotSupportedException, intended approach to use according to docs when your implementation does not use a logger.
-     *
-     * @return logger
-     * @throws SQLFeatureNotSupportedException
-     */
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        throw new SQLFeatureNotSupportedException();
-    }
 
 	@Override
 	public void setLogWriter(final PrintWriter out) throws SQLException {
