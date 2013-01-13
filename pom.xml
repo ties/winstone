@@ -8,6 +8,22 @@
 	<description>Winstone is a servlet container that was written out of a desire to provide servlet functionality without the bloat that full J2EE compliance introduces.</description>
 	<url>http://code.google.com/p/winstone/</url>
 	<inceptionYear>2010</inceptionYear>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<javax.servlet.version>2.5</javax.servlet.version>
+		<google-collections.version>1.0</google-collections.version>
+		<org.slf4j.version>1.6.4</org.slf4j.version>
+		<junit.version>3.8.1</junit.version>
+		<com.h2database.version>1.3.154</com.h2database.version>
+		<httpunit.version>1.6</httpunit.version>
+		<logback.version>1.0.0</logback.version>
+		<javax.mail.version>1.4.1</javax.mail.version>
+		<spring.version>3.0.5.RELEASE</spring.version>
+		<aspectj.version>1.7.1</aspectj.version>
+		<compiler.version>1.7</compiler.version>
+	</properties>
+
 	<developers>
 		<developer>
 			<id>jerome.guibert.intelligents.ia.com</id>
@@ -38,8 +54,8 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>2.3.2</version>
 					<configuration>
-						<source>1.6</source>
-						<target>1.6</target>
+						<source>${compiler.version}</source>
+						<target>${compiler.version}</target>
 						<encoding>UTF-8</encoding>
 					</configuration>
 				</plugin>
@@ -88,6 +104,48 @@
 			</plugins>
 		</pluginManagement>
 		<plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <version>1.4</version>
+                <configuration>
+                    <sources>
+                        <source>
+                            <basedir>src/main/java</basedir>
+                        </source>
+                        <source>
+                            <basedir>src/main/aspectj</basedir>
+                        </source>
+                    </sources>
+                    <showWeaveInfo>true</showWeaveInfo>
+                    <source>${compiler.version}</source>
+                    <target>${compiler.version}</target>
+                    <Xlint>ignore</Xlint>
+                    <complianceLevel>${compiler.version}</complianceLevel>
+                    <encoding>UTF-8</encoding>
+                    <verbose>false</verbose>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>test-compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjrt</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -121,7 +179,18 @@
 			<artifactId>httpunit</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <!-- AspectJ -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjtools</artifactId>
+            <version>${aspectj.version}</version>
+        </dependency>
+    </dependencies>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -244,18 +313,6 @@
 			</build>
 		</profile>
 	</profiles>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<javax.servlet.version>2.5</javax.servlet.version>
-		<google-collections.version>1.0</google-collections.version>
-		<org.slf4j.version>1.6.4</org.slf4j.version>
-		<junit.version>3.8.1</junit.version>
-		<com.h2database.version>1.3.154</com.h2database.version>
-		<httpunit.version>1.6</httpunit.version>
-		<logback.version>1.0.0</logback.version>
-		<javax.mail.version>1.4.1</javax.mail.version>
-		<spring.version>3.0.5.RELEASE</spring.version>
-	</properties>
 	<modules>
 		<module>jndi</module>
 		<module>winstone</module>
