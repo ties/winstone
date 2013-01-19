@@ -12,11 +12,37 @@ Sometimes you want just a simple servlet container - without all the other junk 
 
 This is where Winstone is best suited.
 
-You could find some documentation and support on this site: 
- 
+You could find some documentation and support on this site:
+
  http://code.google.com/p/winstone/
- 
- http://intelligents-ia.com/index.php/category/technique/Winstone 
+
+ http://intelligents-ia.com/index.php/category/technique/Winstone
+
+**************************************************************************************
+Compiling Winstone
+
+**************************************************************************************
+Winstone, with the added patches for our Aspect Oriented Programming course at the University of Twente
+can be compiled using maven.
+
+mvn clean package
+
+Compiles and packages maven. This yields the needed jar files in the */target/ directories.
+When a test fails, try the following commands to compile:
+
+mvn package -DskipTests
+mvn package -fn
+
+fn: fail never
+
+**************************************************************************************
+Running Winstone
+
+**************************************************************************************
+Winstone can be run in multiple ways. They are desceribed at <https://code.google.com/p/winstone/wiki/UsingWinstone>
+
+The most simple method is:
+java -jar target/winstone-X.X.X-boot.jar --webroot=<root dir>
 
 
 **************************************************************************************
