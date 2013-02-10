@@ -66,6 +66,12 @@
 		</plugins>
 	</build>
 	<dependencies>
+        <!-- Tools for AOP course -->
+        <dependency>
+            <groupId>edu.utwente.aop</groupId>
+            <artifactId>shared</artifactId>
+            <version>0.1</version>
+        </dependency>
 		<dependency>
 			<groupId>net.winstone</groupId>
 			<artifactId>jndi</artifactId>
