@@ -63,13 +63,12 @@ public privileged aspect RateLimitingAspect  percflow(processRequest()) {
     /** Around did not work when trying to abstract call(...) && args into a seperate pointcut
      * @throws IOException when sendError throws an exception.
      */
-    void around(ServletRequest req, ServletResponse resp) throws IOException: inWinstoneServletConfiguration() && !handlingError() && call(void Servlet.service(..)) && args(req, resp) {
-
-        ensureTicket();
-
-        if (state != State.TICKET) {
+    void around(ServletRequest req, ServletResponse resp) throws IOException:
+            inWinstoneServletConfiguration() && !handlingError() &&
+            call(void Servlet.service(..)) && args(req, resp) {
+        if (!ensureTicket()) {
             // Instantiate new 503-UNAVAILABLE
-            logger.info("Redirecting request to 503");
+            logger.info("No tickets: redirecting request to 503");
             ((HttpServletResponse) resp).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Rate limit reached - Throttled");
         } else {
             proceed(req, resp);
@@ -78,16 +77,16 @@ public privileged aspect RateLimitingAspect  percflow(processRequest()) {
 
     /**
      * Try to get a ticket from the state machine
+     * @return true when this aspect instance (control flow) has a valid ticket
      */
-    private void ensureTicket() {
+    private boolean ensureTicket() {
         switch (state) {
             case TICKET:
                 logger.info("Re-using ticket");
                 break;
             case NOTICKET:
-                logger.info("Trying to acquire ticket for " + this);
                 if (limits.acquire(RESPONSE_TIME_MS)) {
-                    logger.info("Acquired ticket");
+                    logger.info("Acquired new ticket for {}", this);
                     state = State.TICKET;
                 } else {
                     state = State.NOTICKET_AVAILABLE;
@@ -97,5 +96,7 @@ public privileged aspect RateLimitingAspect  percflow(processRequest()) {
                 logger.info("No tickets available");
                 break;
         }
+
+        return state == State.TICKET;
     }
 }
