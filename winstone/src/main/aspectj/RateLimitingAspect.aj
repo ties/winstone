@@ -43,14 +43,22 @@ public privileged aspect RateLimitingAspect  percflow(processRequest()) {
     /**
      * Pointcut that captures all requests flows in which a request is handled.
      * This is used to instantiate this aspect per request that is handled.
+     *
+     * within(RequestHandlerThread) is not needed because processRequest is private, and the compositional
+     * behaviour that would result from calling this using a priviliged aspect probably
+     * would be sensible.
      */
-    pointcut processRequest(): call(* processRequest(..)) && within(RequestHandlerThread);
+    pointcut processRequest(): call(void RequestHandlerThread.processRequest(..));
 
-    pointcut callServiceWithArgs(Servlet servlet, ServletRequest req, ServletResponse resp): call(void Servlet.service(..)) && target(servlet) && args(req, resp);
-
+    /**
+     * Only service calls from within the configuration should be augmented
+     */
     pointcut inWinstoneServletConfiguration(): within(ServletConfiguration);
 
-    pointcut handlingError(): cflow(call(void sendError(int, String)) && target(HttpServletResponse));
+    /**
+     * When the control flow has reached HttpServletResponse.sendError we disable the ratelimiting
+     */
+    pointcut handlingError(): cflow(call(void HttpServletResponse.sendError(int, String)));
 
     /** Around did not work when trying to abstract call(...) && args into a seperate pointcut
      * @throws IOException when sendError throws an exception.
