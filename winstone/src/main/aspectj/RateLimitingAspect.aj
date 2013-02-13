@@ -1,18 +1,29 @@
-import edu.utwente.aop.tools.RateLimiter;
-import net.winstone.core.ServletConfiguration;
-import net.winstone.core.SimpleRequestDispatcher;
-import net.winstone.servlet.StaticResourceServlet;
-import org.aspectj.lang.Aspects;
-import org.aspectj.lang.Aspects14;
+import net.winstone.core.WinstoneConstant;
 import org.slf4j.LoggerFactory;
 
+// Java EE servlet API
 import javax.servlet.Servlet;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
+
+// Used to scope pointcuts
+import net.winstone.core.listener.RequestHandlerThread;
+import net.winstone.core.ServletConfiguration;
+import net.winstone.core.SimpleRequestDispatcher;
+
+
+// Rate Limiter
+import edu.utwente.aop.tools.RateLimiter;
 import java.util.concurrent.TimeUnit;
 
-import net.winstone.core.listener.RequestHandlerThread;
+// exceptions from Servlet.service(..)
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+
+// We redirect the call flow to error servlet
+import net.winstone.servlet.ErrorServlet;
 
 /**
  * Ensure that the request is allowed by the RateLimiter before continuing..
@@ -22,7 +33,8 @@ public aspect RateLimitingAspect  percflow(processRequest()) {
 
     public final int RESPONSE_TIME_MS = 1000;
 
-    private State state = State.UNINITIALIZED;
+    /** public because it is implicitly accessed from WebAppConfiguration */
+    public State state = State.UNINITIALIZED;
 
     static org.slf4j.Logger logger = LoggerFactory.getLogger(Servlet.class);
     // Allow 5 requests per limit
@@ -30,28 +42,37 @@ public aspect RateLimitingAspect  percflow(processRequest()) {
 
     pointcut processRequest(): call(* processRequest(..)) && within(RequestHandlerThread);
 
-    pointcut servletCallService(Servlet servlet): call(* Servlet.service(..)) && target(servlet);
+    pointcut servletCallService(Servlet servlet, ServletRequest req, ServletResponse resp): call(void Servlet.service(..)) && target(servlet) && args(req, resp);
 
     pointcut inWinstoneServletConfiguration(): within(ServletConfiguration);
-
-    pointcut rateLimit(Servlet servlet): servletCallService(servlet) && inWinstoneServletConfiguration();
 
     before(): processRequest() {
         logger.info("Processrequest!");
         state = State.NOTICKET;
     }
 
-     // TODO: Rewrite to around and call service on different type.
+    // TODO: Rewrite to around and call service on different type.
     // TODO: Voor cflowbelow
-    before(Servlet servlet): rateLimit(servlet) {
-        logger.info(this.toString());
+    before(ServletRequest req, ServletResponse resp) throws ServletException, IOException: inWinstoneServletConfiguration() && call(void Servlet.service(..)) && args(req, resp) {
+        logger.info(this.toString() + req + resp);
 
+        getTicket();
+
+        if (state != State.TICKET) {
+            // Instantiate new 503-UNAVAILABLE
+            ((HttpServletResponse) resp).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Rate limit reached - Throttled");
+
+            // TODO: Should not continue the regular call on service.
+        }
+    }
+
+    public void getTicket() {
         switch (state) {
             case TICKET:
                 logger.info("Re-using ticket");
                 break;
             case NOTICKET:
-                logger.info("Trying to acquire ticket for " + servlet);
+                logger.info("Trying to acquire ticket for " + this);
                 if (limits.acquire(RESPONSE_TIME_MS)) {
                     logger.info("Acquired ticket");
                     state = State.TICKET;
