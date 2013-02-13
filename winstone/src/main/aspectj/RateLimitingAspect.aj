@@ -28,45 +28,50 @@ import net.winstone.servlet.ErrorServlet;
 /**
  * Ensure that the request is allowed by the RateLimiter before continuing..
  */
-public aspect RateLimitingAspect  percflow(processRequest()) {
-    private enum State { UNINITIALIZED, NOTICKET, TICKET, NOTICKET_AVAILABLE };
+public privileged aspect RateLimitingAspect  percflow(processRequest()) {
+    private enum State { NOTICKET, TICKET, NOTICKET_AVAILABLE };
 
     public final int RESPONSE_TIME_MS = 1000;
 
     /** public because it is implicitly accessed from WebAppConfiguration */
-    public State state = State.UNINITIALIZED;
+    public State state = State.NOTICKET;
 
     static org.slf4j.Logger logger = LoggerFactory.getLogger(Servlet.class);
     // Allow 5 requests per limit
     private static RateLimiter limits = new RateLimiter(5, 1, TimeUnit.MINUTES);
 
+    /**
+     * Pointcut that captures all requests flows in which a request is handled.
+     * This is used to instantiate this aspect per request that is handled.
+     */
     pointcut processRequest(): call(* processRequest(..)) && within(RequestHandlerThread);
 
-    pointcut servletCallService(Servlet servlet, ServletRequest req, ServletResponse resp): call(void Servlet.service(..)) && target(servlet) && args(req, resp);
+    pointcut callServiceWithArgs(Servlet servlet, ServletRequest req, ServletResponse resp): call(void Servlet.service(..)) && target(servlet) && args(req, resp);
 
     pointcut inWinstoneServletConfiguration(): within(ServletConfiguration);
 
-    before(): processRequest() {
-        logger.info("Processrequest!");
-        state = State.NOTICKET;
-    }
+    pointcut handlingError(): cflow(call(void sendError(int, String)) && target(HttpServletResponse));
 
-    // TODO: Rewrite to around and call service on different type.
-    // TODO: Voor cflowbelow
-    before(ServletRequest req, ServletResponse resp) throws ServletException, IOException: inWinstoneServletConfiguration() && call(void Servlet.service(..)) && args(req, resp) {
-        logger.info(this.toString() + req + resp);
+    /** Around did not work when trying to abstract call(...) && args into a seperate pointcut
+     * @throws IOException when sendError throws an exception.
+     */
+    void around(ServletRequest req, ServletResponse resp) throws IOException: inWinstoneServletConfiguration() && !handlingError() && call(void Servlet.service(..)) && args(req, resp) {
 
-        getTicket();
+        ensureTicket();
 
         if (state != State.TICKET) {
             // Instantiate new 503-UNAVAILABLE
+            logger.info("Redirecting request to 503");
             ((HttpServletResponse) resp).sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Rate limit reached - Throttled");
-
-            // TODO: Should not continue the regular call on service.
+        } else {
+            proceed(req, resp);
         }
     }
 
-    public void getTicket() {
+    /**
+     * Try to get a ticket from the state machine
+     */
+    private void ensureTicket() {
         switch (state) {
             case TICKET:
                 logger.info("Re-using ticket");
@@ -83,8 +88,6 @@ public aspect RateLimitingAspect  percflow(processRequest()) {
             case NOTICKET_AVAILABLE:
                 logger.info("No tickets available");
                 break;
-            case UNINITIALIZED: // ensure this does not happen
-                throw new IllegalStateException("Should not receive request before init");
         }
     }
 }
